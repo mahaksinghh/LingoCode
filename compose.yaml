@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: lingocode
+      POSTGRES_PASSWORD: local-only
+      POSTGRES_DB: lingocode
+    volumes:
+      - workspace-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "lingocode"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  api:
+    build: ./services/api
+    environment:
+      DATABASE_URL: &database-url postgresql://lingocode:local-only@db/lingocode
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  worker:
+    build: ./services/api
+    command: ["python", "-m", "worker"]
+    environment:
+      DATABASE_URL: *database-url
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+volumes:
+  workspace-db:

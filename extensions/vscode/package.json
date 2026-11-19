@@ -1,0 +1,29 @@
+{
+  "name": "lingocode-studio",
+  "displayName": "LingoCode Studio",
+  "description": "Browse and export your LingoCode projects from VS Code.",
+  "version": "0.1.0",
+  "publisher": "lingocode",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "main": "./extension.cjs",
+  "scripts": { "test": "node --test client.test.cjs" },
+  "contributes": {
+    "commands": [
+      { "command": "lingocode.open", "title": "LingoCode: Open Source File" },
+      { "command": "lingocode.export", "title": "LingoCode: Download Project ZIP" },
+      { "command": "lingocode.logout", "title": "LingoCode: Sign Out" }
+    ],
+    "configuration": {
+      "title": "LingoCode",
+      "properties": {
+        "lingocode.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8080",
+          "scope": "machine",
+          "description": "HTTPS origin for your LingoCode deployment, or an HTTP loopback origin for local development."
+        }
+      }
+    }
+  }
+}

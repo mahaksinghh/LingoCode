@@ -1,0 +1,90 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    env:
+      TEST_DATABASE_URL: postgresql://lingocode:test@localhost:5432/lingocode_test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: lingocode
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: lingocode_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lingocode -d lingocode_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/api/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check . && ruff format --check .
+      - run: pytest -q
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: node --test ../../extensions/vscode/client.test.cjs
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build --wait --wait-timeout 90
+      - run: python3 infra/smoke.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+        working-directory: apps/web
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: apps/web
+      - run: node apps/web/e2e/studio.mjs
+      - name: Build and launch the exported app
+        run: |
+          mkdir -p /tmp/lingocode-smoke/export
+          unzip -q /tmp/lingocode-smoke/export.zip -d /tmp/lingocode-smoke/export
+          APP_PASSWORD=Smoke-test-only docker compose \
+            -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export \
+            up --build --wait --wait-timeout 90
+      - run: node apps/web/e2e/studio.mjs --exported
+      - if: always()
+        run: |
+          if test -f /tmp/lingocode-smoke/export/compose.yaml; then
+            docker compose -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export logs
+            docker compose -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export down --volumes
+          fi
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down --volumes
