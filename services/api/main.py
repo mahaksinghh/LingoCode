@@ -1,7 +1,7 @@
 from io import BytesIO
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from fastapi import FastAPI, HTTPException, Response
 from psycopg.errors import UniqueViolation
@@ -204,7 +204,10 @@ def export(project_id: UUID, job_id: UUID, owner: Owner):
     with ZipFile(buffer, mode="w", compression=ZIP_DEFLATED) as archive:
         for data in job["files"]:
             file = GeneratedFile.model_validate(data)
-            archive.writestr(file.path, file.content)
+            entry = ZipInfo(file.path)
+            entry.create_system = 3
+            entry.external_attr = 0o100644 << 16
+            archive.writestr(entry, file.content, compress_type=ZIP_DEFLATED)
     return Response(
         buffer.getvalue(),
         media_type="application/zip",

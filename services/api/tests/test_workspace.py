@@ -139,6 +139,7 @@ def test_hindi_plan_build_revise_restore_export_and_ownership(database):
         assert {"Dockerfile", "compose.yaml", "api/main.py", "web/src/main.tsx"} <= set(
             archive.namelist()
         )
+        assert all(file.external_attr >> 16 == 0o100644 for file in archive.infolist())
         assert json.loads(archive.read("web/src/spec.json"))["locale"] == "hi"
 
     response = client.post(path + "/" + build["id"] + "/restore", headers=owner)
