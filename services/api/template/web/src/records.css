@@ -1,0 +1,46 @@
+.record-app {
+  --app-accent: #155c42;
+  --app-soft: #e3f2e9;
+  font: 15px/1.5 system-ui, sans-serif;
+  color: #17261f;
+  color-scheme: light;
+  background: #fafbf8;
+  border-radius: 1rem;
+  overflow: hidden;
+  min-width: 0;
+}
+.record-app[data-accent="indigo"] { --app-accent: #413ba7; --app-soft: #eeeafe; }
+.record-app[data-accent="rose"] { --app-accent: #9d3558; --app-soft: #fbeaf1; }
+.record-app[data-accent="amber"] { --app-accent: #815112; --app-soft: #fff1d9; }
+.record-app > header { background: var(--app-soft); padding: 1.5rem; }
+.record-app h2 { font-size: 1.75rem; letter-spacing: -.03em; }
+.record-app h2, .record-app h3, .record-app p { margin: 0 0 .45rem; overflow-wrap: anywhere; }
+.record-app > form, .record-app > section { padding: 1.25rem 1.5rem; }
+.record-app form { border-bottom: 1px solid #e0e7e2; }
+.record-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: .65rem; margin: .8rem 0; }
+.record-app label { display: grid; gap: .25rem; font-weight: 650; overflow-wrap: anywhere; }
+.record-app input, .record-app button {
+  all: revert;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  border: 1px solid #b9c8be;
+  border-radius: .4rem;
+  background: #fff;
+  padding: .45rem .6rem;
+}
+.record-app input { width: 100%; min-width: 0; }
+.record-app :focus-visible { outline: 2px solid var(--app-accent); outline-offset: 2px; }
+.record-app .record-toggle { display: flex; align-items: center; gap: .5rem; }
+.record-app input[type=checkbox] { width: auto; }
+.record-app button { cursor: pointer; font-weight: 650; margin-right: .4rem; }
+.record-app button:disabled { opacity: .55; }
+.record-app .record-primary { background: var(--app-accent); color: white; border-color: var(--app-accent); }
+.record-list { display: grid; gap: .5rem; }
+.record-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; justify-content: space-between; background: #fff; border: 1px solid #dbe3dd; padding: .65rem; border-radius: .55rem; }
+.record-row dl { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin: 0; min-width: 0; }
+.record-row dl div { min-width: 0; }
+.record-row dt { font-size: .8rem; color: #47594e; }
+.record-row dd { margin: 0; overflow-wrap: anywhere; }
+.record-app small { color: var(--app-accent); margin-left: .4rem; }
+.record-app [role=alert] { color: #992b25; margin-top: .5rem; }

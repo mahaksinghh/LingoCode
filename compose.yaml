@@ -15,11 +15,8 @@ services:
   api:
     build: ./services/api
     environment:
-      DATABASE_URL: postgresql://lingocode:local-only@db/lingocode
+      DATABASE_URL: &database-url postgresql://lingocode:local-only@db/lingocode
       AI_PROVIDER: ${AI_PROVIDER:-mock}
-      AI_BASE_URL: ${AI_BASE_URL:-}
-      AI_API_KEY: ${AI_API_KEY:-}
-      AI_MODEL: ${AI_MODEL:-}
     depends_on:
       db:
         condition: service_healthy
@@ -28,8 +25,23 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+  worker:
+    build: ./services/api
+    command: ["python", "-m", "worker"]
+    environment:
+      DATABASE_URL: *database-url
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
   web:
-    build: ./apps/web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
     ports:
       - "127.0.0.1:8080:80"
     depends_on:

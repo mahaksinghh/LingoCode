@@ -1,10 +1,12 @@
-# LingoCode
+# LingoCode Studio
 
-LingoCode is an Indic-first AI application builder. The first workspace supports
-English and Hindi. Create a project, choose its output language, describe an
-app, and browse the files and generation history saved for that project.
+LingoCode is an Indic-first builder for full-stack record-management apps
+such as task trackers, inventory lists, and team directories. Describe an
+app in your language, review the plan, build it, try the working form, and
+download the source. Every export includes React, FastAPI, PostgreSQL,
+Docker Compose, and an optional GitHub Container Registry workflow.
 
-## Run locally
+## Run LingoCode
 
 Requires Docker with Compose v2.
 
@@ -13,45 +15,68 @@ cp .env.example .env
 docker compose up --build --wait
 ```
 
-Open http://127.0.0.1:8080. The API applies ordered SQL migrations on startup.
-PostgreSQL data persists in the Compose volume. Use the same browser profile
-to reopen your workspace. The default mock mode works offline after setup
-and returns a localized starter template.
+Open http://127.0.0.1:8080 and create an account. Projects and job history
+live in PostgreSQL and are available when you sign in on another device
+against the same installation. If this browser was used with the initial
+LingoCode workspace, signing in imports projects owned by its old local key.
 
-To switch to a real provider, set `AI_PROVIDER=compatible`, `AI_BASE_URL`
-(the API root, including `/v1` where applicable), `AI_API_KEY`, and
-`AI_MODEL` in `.env`. Recreate the API with `docker compose up -d api`.
-The endpoint must support Chat Completions and return the JSON file format
-requested by the adapter. Only the server reads the provider key.
+1. Create a project named **कार्य प्रबंधक** and choose **हिन्दी** as the output language.
+2. Enter **इंडिगो रंग का कार्य ऐप** and choose **Plan app**.
+3. Review the fields and choose **Build this plan**. Add, edit, and remove a record in **Live preview**.
+4. Choose **Revise**, enter **Add quantity**, and apply it. Use **Activity** to inspect or restore an older snapshot.
+5. Choose **Download ZIP**. Extract the archive and run `docker compose up --build --wait` from the extracted directory. Open http://127.0.0.1:8090.
 
-## Development and tests
+The studio UI is available in English and Hindi. App output and dictation
+language choices include English, Hindi, Tamil, and Bengali. Dictation uses the
+browser's speech service when supported. Typed prompts always work.
 
-Use Node 22 and Python 3.12. The Vite development server proxies API calls to
-port 8000. Run the API locally by setting `DATABASE_URL` to your development
-PostgreSQL database and running `python -m db && uvicorn main:app --reload`
-from `services/api` with the requirements installed.
+## Generation modes
 
-```sh
-cd apps/web
-npm ci
-npm test
-npm run build
+The default **Template mode** works with no AI credentials. It uses the project
+title, output language, and supported prompt keywords to define fields and
+themes. Try `task`, `inventory`, `quantity`, `indigo`, `rose`, or their supported
+localized equivalents.
+
+For AI planning, revision, and diagnostic guidance, configure a server-side
+Chat Completions-compatible endpoint in `.env`:
+
+```dotenv
+AI_PROVIDER=compatible
+AI_BASE_URL=https://your-provider.example/v1
+AI_API_KEY=
+AI_MODEL=
 ```
 
-```sh
-cd services/api
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
-ruff check .
-ruff format --check .
-# Use a disposable PostgreSQL database. Integration tests truncate app tables.
-TEST_DATABASE_URL=postgresql://user:password@localhost/lingocode_test pytest -q
-```
+Restart the stack with `docker compose up --build --wait`. The model produces
+a validated app specification. LingoCode turns it into a tested application
+template with one record type and up to six text, number, or checkbox fields.
+Debugging uses the prompt and selected revision's specification. The live
+preview runs the same React record interface as the exported app and uses
+browser-local test data. The exported app uses its own PostgreSQL database.
 
-CI runs those checks and exercises the Compose stack through the same HTTP
-endpoint that the browser uses. Run the smoke test with `python3 infra/smoke.py`
-after Compose starts.
+## Deploy and open in VS Code
 
-See [deployment, threat model and data retention](docs/operations.md) before
-deploying outside a local development machine.
+The exported directory has a Dockerfile and deployment guide. Build or publish
+its image with the included manually dispatched GitHub workflow. A hosting
+service needs PostgreSQL, HTTPS, `DATABASE_URL`, and `APP_PASSWORD`. LingoCode
+itself has no hosting account requirement for local use.
+
+The [VS Code companion](extensions/vscode/README.md) opens source files and
+downloads exports from the studio using an existing account.
+
+## Development and verification
+
+Use Node 22, Python 3.12, and PostgreSQL. From `services/api`, install
+`requirements-dev.txt`, set `DATABASE_URL`, and start the API with
+`python -m db && uvicorn main:app --reload`. In a second terminal from that
+directory run `python -m worker` with the same database URL and provider
+settings. From `apps/web`, run `npm ci && npm run dev`. Vite proxies the API.
+
+- API checks from `services/api` run with `ruff check .`, `ruff format --check .`,
+  and `TEST_DATABASE_URL=... pytest -q`. The database tests truncate app tables,
+  so use a disposable database.
+- Web checks from `apps/web` run with `npm test` and `npm run build`.
+- CI starts the Compose stack, drives the studio in Chromium, downloads a ZIP,
+  builds it independently, and verifies authenticated CRUD in the exported app.
+
+See the [operations guide](docs/operations.md) for deployment and service limits.

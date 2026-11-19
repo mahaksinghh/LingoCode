@@ -53,12 +53,37 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: node --test ../../extensions/vscode/client.test.cjs
   compose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: docker compose up --build --wait --wait-timeout 90
       - run: python3 infra/smoke.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+        working-directory: apps/web
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: apps/web
+      - run: node apps/web/e2e/studio.mjs
+      - name: Build and launch the exported app
+        run: |
+          mkdir -p /tmp/lingocode-smoke/export
+          unzip -q /tmp/lingocode-smoke/export.zip -d /tmp/lingocode-smoke/export
+          APP_PASSWORD=Smoke-test-only docker compose \
+            -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export \
+            up --build --wait --wait-timeout 90
+      - run: node apps/web/e2e/studio.mjs --exported
+      - if: always()
+        run: |
+          if test -f /tmp/lingocode-smoke/export/compose.yaml; then
+            docker compose -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export logs
+            docker compose -f /tmp/lingocode-smoke/export/compose.yaml -p lingocode-export down --volumes
+          fi
       - if: failure()
         run: docker compose logs
       - if: always()
